@@ -23,9 +23,11 @@ git branch
 echo "git status"
 git status
 
+echo "TRAVIS_SECURE_ENV_VARS=$TRAVIS_SECURE_ENV_VARS"
 echo "token=$MDJ33_TOKEN"
 git remote -v
 git branch -r
+
 setup_git() {
     git config --global user.email "travis@travis-ci.org"
     git config --global user.name "Travis CI"
