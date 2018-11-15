@@ -30,7 +30,7 @@ git branch -r
 
 setup_git() {
     git config --global user.email "travis@travis-ci.org"
-    git config --global user.name "Travis CI"
+    git config --global user.name "mdj33"
 }
 
 commit_website_files() {
@@ -44,8 +44,8 @@ commit_website_files() {
 }
 
 upload_files() {
-    local token="e32f4a9bcfc918e8e1d4928fa47704d3eb451100"
-#    curl -H 'Authorization: token<e32f4a9bcfc918e8e1d4928fa47704d3eb451100>"  https://github.com/mdj33/plugin.git
+    local token="33b84a8808d16c4dc7e9d61c611e0fe61d880970"
+#    curl -H 'Authorization: token <e32f4a9bcfc918e8e1d4928fa47704d3eb451100>'  https://github.com/mdj33/plugin.git
     git remote rm origin
     git remote add origin https://"${token}"@github.com/mdj33/plugin.git >/dev/null 2>&1
     git remote -v
