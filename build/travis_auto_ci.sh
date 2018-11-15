@@ -45,10 +45,10 @@ commit_website_files() {
 
 upload_files() {
 #    local token="e39a91bcd236ad93a2cf849256cb7f206d77ea68"
-     local token="aa"
+#     local token="aa"
 #    curl -H 'Authorization: token <e32f4a9bcfc918e8e1d4928fa47704d3eb451100>'  https://github.com/mdj33/plugin.git
 #    git remote rm origin
-    git remote add originx https://"${token}"@github.com/mdj33/plugin.git >/dev/null 2>&1
+    git remote add originx https://"${MDJ33_TOKEN}"@github.com/mdj33/plugin.git >/dev/null 2>&1
     git push --quiet --set-upstream originx $TRAVIS_BRANCH
 }
 
