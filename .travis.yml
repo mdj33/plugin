@@ -17,7 +17,8 @@ jobs:
         - go get -u mvdan.cc/sh/cmd/gosh
       script:
         - make fmt_go
-        - "./build/travis_auto_ci.sh"
+      after_success:
+      - "./build/travis_auto_ci.sh"
 #        - make fmt_go
 #        - make checkgofmt && make fmt_go
 #        - make linter
