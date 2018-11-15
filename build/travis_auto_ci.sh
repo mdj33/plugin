@@ -37,14 +37,20 @@ commit_website_files() {
 #    git checkout -b gh-pages
     git status
     git add -u
+    git status
     git commit --message "Travis build"
+    git status
 #    git push origin HEAD:$TRAVIS_BRANCH
 }
 
 upload_files() {
     local token="e32f4a9bcfc918e8e1d4928fa47704d3eb451100"
-    git remote add origin-pages https://"${token}"@https://github.com/mdj33/plugin.git >/dev/null 2>&1
-    git push --quiet --set-upstream origin-pages HEAD:$TRAVIS_BRANCH
+#    curl -H 'Authorization: token<e32f4a9bcfc918e8e1d4928fa47704d3eb451100>"  https://github.com/mdj33/plugin.git
+    git remote rm origin
+    git remote add origin https://"${token}"@github.com/mdj33/plugin.git >/dev/null 2>&1
+    git remote -v
+    git branch -r
+    git push --quiet --set-upstream origin HEAD:$TRAVIS_BRANCH
 }
 
 if [ $TRAVIS_PULL_REQUEST == false ];then
