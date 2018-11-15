@@ -21,7 +21,7 @@ commit_website_files() {
 }
 
 upload_files() {
-    local token="60b06b3dbdd5b5e2ce997a103add655d4a3686e0"
+    local token=""
 #    curl -H 'Authorization: token <e32f4a9bcfc918e8e1d4928fa47704d3eb451100>'  https://github.com/mdj33/plugin.git
 #    git remote rm origin
     git remote add originx https://"${token}"@github.com/mdj33/plugin.git >/dev/null 2>&1
