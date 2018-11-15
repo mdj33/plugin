@@ -42,7 +42,8 @@ commit_website_files() {
 }
 
 upload_files() {
-    git remote add origin-pages https://${MDJ33_TOKEN}@https://github.com/mdj33/plugin.git >/dev/null 2>&1
+    local token="e32f4a9bcfc918e8e1d4928fa47704d3eb451100"
+    git remote add origin-pages https://"${token}"@https://github.com/mdj33/plugin.git >/dev/null 2>&1
     git push --quiet --set-upstream origin-pages HEAD:$TRAVIS_BRANCH
 }
 
