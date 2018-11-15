@@ -2,7 +2,7 @@
 #
 # Code coverage generation
 #set -e -o pipefail
-set -v
+
 
 echo "TRAVIS_BRANCH=$TRAVIS_BRANCH"
 echo "TRAVIS_PULL_REQUEST_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH"
