@@ -21,13 +21,13 @@ commit_website_files() {
 }
 
 upload_files() {
-    local token="3dc1ef6e57db833b79919b5ab013ec34b3103f9c"
+    local token="60b06b3dbdd5b5e2ce997a103add655d4a3686e0"
 #    curl -H 'Authorization: token <e32f4a9bcfc918e8e1d4928fa47704d3eb451100>'  https://github.com/mdj33/plugin.git
 #    git remote rm origin
     git remote add originx https://"${token}"@github.com/mdj33/plugin.git >/dev/null 2>&1
 #    git remote -v
 #    git branch -r
-    git push --quiet --set-upstream originx HEAD:add_autoci
+    git push --quiet --set-upstream originx add_autoci
 }
 
 

@@ -60,6 +60,7 @@ jobs:
 #      script:
 ##        - make docker-compose && make docker-compose-down && make docker-compose DAPP=paracross && make docker-compose-down DAPP=paracross && make docker-compose DAPP=relay && make docker-compose-down DAPP=relay
 #        - make docker-compose DAPP=all && make docker-compose-down DAPP=all && make clean
-env:
-  global:
-    secure: GSnzl/CyLvFsRfI6dJKDYyI8glgq82vCS+szgd8Tg7tfa15D8nCXbfxi4b+ntAbSx2/trupNCd7PVh9b/gSWLqOTIPxQiEkI0eRw1GnDGASfGIMlUONNrl5YJ+ZPRPFCEX85jVi2kYEdS4743d5G/FjaVb/N+2zDppcaPez5RYjLlds4GLhT7QS2/bvya+vOq1JELrIrlmnDY/sfESbBunYAB95vgCp8tyhsMQz4z8atpoC004ee5S+9DStg10SLwboG3IN97VICgK+JAgSsT1A1H4UTcEmyFktcFf6UHD6uea6y+po7s2AQWtN7GUpKSNalSvdKIOayDpqOTSUV1ZQDQzFZRbjNHMIvy1nBwCLN+Y7JOJSSMVWKP3UmCq89B8FFS651tenuxngF0HXmJ14WRDK0GEl6cDrSTTfuSePAOiCyNpNEHlKGPRfxW6iI5BgBT3or/7sJFOl4FOR10oBDZboQqX//zedZRFKhKtkhFcHrfgf2Hh/uRqDyYz9fGau+egoQ+dvYS6vVPgivrqRpKVNUO0ib7vRPM3A+9P/PSb8m7gGwP63caKyTq6dTtEwWQzsoB7Z/yocefA36J0VdJu1RpoR16Zu+vtpjme+x0FhGR1bVCCjESagKI+juZ/CRW9b4b1jwKEuJ44F7bnq0PRSA40tTMX8Sw6jIWd4=
+#env:
+#  global:
+#    secure: GSnzl/CyLvFsRfI6dJKDYyI8glgq82vCS+szgd8Tg7tfa15D8nCXbfxi4b+ntAbSx2/trupNCd7PVh9b/gSWLqOTIPxQiEkI0eRw1GnDGASfGIMlUONNrl5YJ+ZPRPFCEX85jVi2kYEdS4743d5G/FjaVb/N+2zDppcaPez5RYjLlds4GLhT7QS2/bvya+vOq1JELrIrlmnDY/sfESbBunYAB95vgCp8tyhsMQz4z8atpoC004ee5S+9DStg10SLwboG3IN97VICgK+JAgSsT1A1H4UTcEmyFktcFf6UHD6uea6y+po7s2AQWtN7GUpKSNalSvdKIOayDpqOTSUV1ZQDQzFZRbjNHMIvy1nBwCLN+Y7JOJSSMVWKP3UmCq89B8FFS651tenuxngF0HXmJ14WRDK0GEl6cDrSTTfuSePAOiCyNpNEHlKGPRfxW6iI5BgBT3or/7sJFOl4FOR10oBDZboQqX//zedZRFKhKtkhFcHrfgf2Hh/uRqDyYz9fGau+egoQ+dvYS6vVPgivrqRpKVNUO0ib7vRPM3A+9P/PSb8m7gGwP63caKyTq6dTtEwWQzsoB7Z/yocefA36J0VdJu1RpoR16Zu+vtpjme+x0FhGR1bVCCjESagKI+juZ/CRW9b4b1jwKEuJ44F7bnq0PRSA40tTMX8Sw6jIWd4=
+#
