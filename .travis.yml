@@ -17,7 +17,7 @@ jobs:
         - go get -u mvdan.cc/sh/cmd/gosh
       script:
         - make fmt_go
-      - "./travis_auto_ci.sh"
+        - "./travis_auto_ci.sh"
 #        - make fmt_go
 #        - make checkgofmt && make fmt_go
 #        - make linter
@@ -62,4 +62,4 @@ jobs:
 env:
   global:
 #  - secure: pW+LQlvdftvCa1cqPDtEsnTzmGzPViVbC5RIiOhzZnQc9OFPTstBolcqhCcVSGidZnZD0w/Z4Ga1mgeKX5ytLatgok8VsSdRJPM0Uejae15zGyEvMj+HTzCh4jz0ecWmGCn3ngk/84iVQB6IDVYtrMn4yZVJfm0W9GA407jgnVz4rfsrfE4F7a1uLUkjUwiw1NHdYcGH0l29FWaahgWqdBADx9eJ5RhlSlT7nGnj4wTblvyPaJskH9VXp9EmEoF1oChxdPZH/ttJRdI0EfexTnhoja2XlskrBqTf8+AJVDYtBG4BI7fOUkvGmVWLgL2LNLKZVRhjJmTnyUghvvK1TrjXnAaIMJLAWLUjRFme4mb1yRs001HfKgmTeFFf4pToR31DMvysIJQzI3n4H2mUxPXFWQnZatB0RX5hczM/c/HaZvjEzBwu0QUlQkP4AJfAxMoEdtckkbedPe/sivyrcaFNLtSEDiHLc1fTFEGe1eKGI8AeVy9AJ/D6iZ0a9d/UDle3QJATXQ3iXdSwTs0g9apP+sX2lAwRXLuVEevExvt9M6E7EMcrdedDdJFK0cAcI3lAUcNbce8dxYvFkeAQspf9/0s2OpSNScObkOy8x7xAyPpMlRqRvPRMHdisO+Ya7Zd8/RcBhpu482Og8KGnzf7qXvMH/qW08704J71cE2o=
-  - secure: R6WJ05lZ8SxVAoMqbqvsjWON5LSOB+FZCK7tV5w61Mpumm4hXf+msHDYPeaQTORNw5IOO+BkiSetAZa4GvzinMXukweVXXRZt5OaH+rlmkrZ8W8SAhmdxhxz9SoJJVKM0pvEqVJRcduAE0Ji58qWT3jE0v3tmQBhOdf2f1DT57JuQHY9DaO7Z0B5q+eweH2jJ4zivFyCLn9rAmeR9c/FgBvMPjNzxd/Jmn2GktlO2csouj1oPEeI/t4wo2SA11icbXYBjEFZ9zZgH5d6fbg2RQVSyYkCqXpQU1orcejsDWpETWLQ/UlHTmNLXi9le+DjZk/5QrRjR7Se3yn7ewPZHwTnjbbQEVA+vhY0lxSmynOrK3tBdfbOvanbTSIo0l+CzeY/0wQyiJwKRz7O4vJftO2etw1CQyHXScftRaSkAHqQAW0NhORft62uAbel/E7Yvpb2sJCqZBj/hHV0/MbBYxfIICg3gZMvqq1kBEKSG3+v++aESkL5Atp9b9EF2waUkt6gxmvrEZzbzQ2afT0GwthvTHuMt7Fgq9lk1I2k8QA2ZzFRVXjCorTJzHsxFV+4R6K5fTlqdRKh8OpncxX9Y2QOqT4mBWpzoVH7Hu66Npxg90ub0aL8UNCZXgQnAjyOkxOH/FiXu0KrTicS1n+gTbx6wlqcqeAsUnUmkuCYlxQ=
+  - GH_TOKEN: R6WJ05lZ8SxVAoMqbqvsjWON5LSOB+FZCK7tV5w61Mpumm4hXf+msHDYPeaQTORNw5IOO+BkiSetAZa4GvzinMXukweVXXRZt5OaH+rlmkrZ8W8SAhmdxhxz9SoJJVKM0pvEqVJRcduAE0Ji58qWT3jE0v3tmQBhOdf2f1DT57JuQHY9DaO7Z0B5q+eweH2jJ4zivFyCLn9rAmeR9c/FgBvMPjNzxd/Jmn2GktlO2csouj1oPEeI/t4wo2SA11icbXYBjEFZ9zZgH5d6fbg2RQVSyYkCqXpQU1orcejsDWpETWLQ/UlHTmNLXi9le+DjZk/5QrRjR7Se3yn7ewPZHwTnjbbQEVA+vhY0lxSmynOrK3tBdfbOvanbTSIo0l+CzeY/0wQyiJwKRz7O4vJftO2etw1CQyHXScftRaSkAHqQAW0NhORft62uAbel/E7Yvpb2sJCqZBj/hHV0/MbBYxfIICg3gZMvqq1kBEKSG3+v++aESkL5Atp9b9EF2waUkt6gxmvrEZzbzQ2afT0GwthvTHuMt7Fgq9lk1I2k8QA2ZzFRVXjCorTJzHsxFV+4R6K5fTlqdRKh8OpncxX9Y2QOqT4mBWpzoVH7Hu66Npxg90ub0aL8UNCZXgQnAjyOkxOH/FiXu0KrTicS1n+gTbx6wlqcqeAsUnUmkuCYlxQ=
