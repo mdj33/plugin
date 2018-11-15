@@ -54,6 +54,7 @@ upload_files() {
 #    chmod 600 ../deploy_key
 #    eval `ssh-agent -s`
 #    ssh-add ../deploy_key
+#    openssl aes-256-cbc -K $encrypted_..._key -iv $encrypted_..._iv -in secrets.tar.enc -out secrets.tar -d
 #    local token="e39a91bcd236ad93a2cf849256cb7f206d77ea68"
 #     local token="aa"
 #    curl -H 'Authorization: token <e32f4a9bcfc918e8e1d4928fa47704d3eb451100>'  https://github.com/mdj33/plugin.git
