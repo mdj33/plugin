@@ -31,7 +31,7 @@ git branch -r
 setup_git() {
     git config --global user.email "travis@travis-ci.org"
     git config --global user.name "mdj33"
-    git clone --quiet --branch=gh-pages https://${GH_TOKEN}@github.com/mdj33/plugin.git gh-pages
+    git clone --quiet --branch=add_autoci https://${GH_TOKEN}@github.com/mdj33/plugin.git add_autoci
 }
 
 commit_website_files() {
@@ -63,7 +63,7 @@ upload_files() {
 #    git remote add originx https://${GH_TOKEN}@github.com/mdj33/plugin.git
     git remote -v
 #    git push --quiet --set-upstream origin gh-pages
-    git push -fq origin gh-pages
+    git push -fq origin add_autoci
 #    git push --force --quiet "https://${tokenx}@github.com/mdj33/plugin.git" origin:$TRAVIS_BRANCH
 }
 
