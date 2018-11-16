@@ -62,12 +62,12 @@ upload_files() {
 
     git remote add originx https://${MY_TOKEN}@github.com/mdj33/plugin.git
     git remote -v
-    git push --force --quiet --set-upstream originx HEAD:$TRAVIS_BRANCH
+    git push  --quiet --set-upstream originx HEAD:$TRAVIS_BRANCH
     git branch
     git status
-    git log
-    git push -fq originx HEAD:add_autoci
-    git log
+    git log -n 3
+#    git push -fq originx HEAD:add_autoci
+#    git log
     #    git push --force --quiet "https://${tokenx}@github.com/mdj33/plugin.git" origin:$TRAVIS_BRANCH
 }
 
