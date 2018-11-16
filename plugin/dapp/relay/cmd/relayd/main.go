@@ -27,7 +27,7 @@ var (
 func main() {
 	// TODO this is daemon
 
-	  runtime.GOMAXPROCS(cpuNum)
+	runtime.GOMAXPROCS(cpuNum)
 	os.Chdir(pwd())
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
