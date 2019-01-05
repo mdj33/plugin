@@ -105,6 +105,9 @@ out:
 			}
 
 		case <-readTick:
+			plog.Info("paracommitmsg tick", "notify", notification, "finishHeight", finishHeight, "sync", isSync,
+				"current tx", client.currentTx == nil,"isCatchingUp",client.paraClient.isCatchingUp)
+
 			if notification != nil && finishHeight < notification[1] && client.currentTx == nil && isSync {
 				count := notification[1] - finishHeight
 				if count > types.TxGroupMaxCount {
@@ -136,9 +139,8 @@ out:
 		//获取正在共识的高度，同步有两层意思，一个是主链跟其他节点完成了同步，另一个是当前平行链节点的高度追赶上了共识高度
 		case rsp := <-consensusCh:
 			consensusHeight := rsp.Height
-			plog.Info("para consensus rcv", "notify", notification, "sending", len(sendingMsgs),
-				"consens heigt", rsp.Height, "consens blockhash", common.HashHex(rsp.BlockHash), "sync", isSync)
-
+			plog.Info("para consensus rcv", "consensHeight", rsp.Height, "notify", notification, "finishHeight", finishHeight,
+				"sendingHeight",sendingHeight,"sending", len(sendingMsgs),"consens blockhash", common.HashHex(rsp.BlockHash), "sync", isSync)
 			//所有节点还没有共识场景或新节点catchingUp场景，要等到收到区块高度大于共识高度时候发送
 			if consensusHeight == -1 || (notification != nil && notification[1] > consensusHeight) {
 				isSync = true
@@ -176,7 +178,7 @@ out:
 			}
 			client.privateKey = key
 			readTick = time.Tick(time.Second * 2)
-
+			plog.Info("paracommitmsg pri key rcved")
 		case <-client.quit:
 			break out
 		}

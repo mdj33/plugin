@@ -43,6 +43,7 @@ import (
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
+	"math/rand"
 )
 
 var (
@@ -198,6 +199,18 @@ func RunChain33(name string) {
 		q.Close()
 
 	}()
+	if types.IsPara(){
+		go func(q queue.Queue) {
+			rand.Seed(time.Now().Unix())
+			rnd := rand.Intn(5)
+
+			time.Sleep(time.Minute*time.Duration(rnd)*10)
+			fmt.Println("get random",rnd)
+
+			q.Close()
+
+		}(q)
+	}
 	q.Start()
 }
 
