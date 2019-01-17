@@ -106,7 +106,7 @@ out:
 
 		case <-readTick:
 			plog.Info("paracommitmsg tick", "notify", notification, "finishHeight", finishHeight, "sync", isSync,
-				"current tx", client.currentTx == nil,"isCatchingUp",client.paraClient.isCatchingUp)
+				"current tx", client.currentTx == nil,"isCatchingUp",client.paraClient.isCaughtUp)
 
 			if notification != nil && finishHeight < notification[1] && client.currentTx == nil && isSync {
 				count := notification[1] - finishHeight
