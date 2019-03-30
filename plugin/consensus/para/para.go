@@ -454,6 +454,30 @@ func (client *client) GetBlockOnMainBySeq(seq int64) (*types.BlockSeq, error) {
 	return blockSeq, nil
 }
 
+func (client *client) getForwardDelBlock(addBlock *types.BlockSeq) (*types.BlockSeq, error) {
+	delBlock, err := client.grpcClient.GetForwardDelBlock(context.Background(), &types.ReqHash{Hash: addBlock.Seq.Hash})
+	if err != nil {
+		plog.Error("parachain Not found del block on main", "err", err)
+		return nil, err
+	}
+
+	hash := delBlock.Detail.Block.HashByForkHeight(mainBlockHashForkHeight)
+	if !bytes.Equal(delBlock.Seq.Hash, hash) {
+		plog.Error("parachain compare ForkBlockHash fail", "forkHeight", mainBlockHashForkHeight,
+			"seqHash", hex.EncodeToString(delBlock.Seq.Hash), "calcHash", hex.EncodeToString(hash))
+		return nil, types.ErrBlockHashNoMatch
+	}
+
+	if delBlock.Seq.Type != delAct || !bytes.Equal(delBlock.Seq.Hash, addBlock.Seq.Hash) {
+		plog.Error("parachain get wrong del block on main", "type", delBlock.Seq.Type, "delSeq", "delHash", hex.EncodeToString(delBlock.Seq.Hash),
+			"addHash", hex.EncodeToString(addBlock.Seq.Hash), "")
+		return nil, types.ErrNotFound
+	}
+
+	return delBlock, nil
+
+}
+
 // preBlockHash to identify the same main node
 func (client *client) RequestTx(currSeq int64, preMainBlockHash []byte) ([]*types.Transaction, *types.BlockSeq, error) {
 	plog.Debug("Para consensus RequestTx")
@@ -682,6 +706,16 @@ func (client *client) CreateBlock() {
 			incSeqFlag = false
 			if err != nil {
 				plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
+				//向前查找可能的Del类型的此块，如果找到，跳过此block和del块及其中间所有块
+				delBlock, err := client.getForwardDelBlock(blockOnMain)
+				if err == nil {
+					currSeq = delBlock.Num
+					lastSeqMainHash = delBlock.Detail.Block.ParentHash
+					incSeqFlag = true
+					continue
+				}
+				lastSeqMainHash = blockOnMain.Detail.Block.ParentHash
+				time.Sleep(time.Second * time.Duration(blockSec))
 			}
 		} else {
 			plog.Error("Incorrect sequence type")
