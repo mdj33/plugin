@@ -454,27 +454,19 @@ func (client *client) GetBlockOnMainBySeq(seq int64) (*types.BlockSeq, error) {
 	return blockSeq, nil
 }
 
-func (client *client) getForwardDelBlock(addBlock *types.BlockSeq) (*types.BlockSeq, error) {
-	delBlock, err := client.grpcClient.GetForwardDelBlock(context.Background(), &types.ReqHash{Hash: addBlock.Seq.Hash})
+func (client *client) getForwardDelBlock(addBlock *types.BlockSeq) (int64, error) {
+	delBlock, err := client.grpcClient.GetForwardDelBlock(context.Background(), &types.BlockSeq{Num:addBlock.Num,Seq:addBlock.Seq})
 	if err != nil {
 		plog.Error("parachain Not found del block on main", "err", err)
-		return nil, err
+		return -2, err
 	}
 
-	hash := delBlock.Detail.Block.HashByForkHeight(mainBlockHashForkHeight)
-	if !bytes.Equal(delBlock.Seq.Hash, hash) {
-		plog.Error("parachain compare ForkBlockHash fail", "forkHeight", mainBlockHashForkHeight,
-			"seqHash", hex.EncodeToString(delBlock.Seq.Hash), "calcHash", hex.EncodeToString(hash))
-		return nil, types.ErrBlockHashNoMatch
+	if delBlock.Seq.Type != delAct {
+		plog.Error("parachain get wrong del block on main", "type", delBlock.Seq.Type)
+		return -2, types.ErrNotFound
 	}
 
-	if delBlock.Seq.Type != delAct || !bytes.Equal(delBlock.Seq.Hash, addBlock.Seq.Hash) {
-		plog.Error("parachain get wrong del block on main", "type", delBlock.Seq.Type, "delSeq", "delHash", hex.EncodeToString(delBlock.Seq.Hash),
-			"addHash", hex.EncodeToString(addBlock.Seq.Hash), "")
-		return nil, types.ErrNotFound
-	}
-
-	return delBlock, nil
+	return delBlock.Num, nil
 
 }
 
@@ -707,10 +699,10 @@ func (client *client) CreateBlock() {
 			if err != nil {
 				plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 				//向前查找可能的Del类型的此块，如果找到，跳过此block和del块及其中间所有块
-				delBlock, err := client.getForwardDelBlock(blockOnMain)
+				delSeq, err := client.getForwardDelBlock(blockOnMain)
 				if err == nil {
-					currSeq = delBlock.Num
-					lastSeqMainHash = delBlock.Detail.Block.ParentHash
+					currSeq = delSeq
+					lastSeqMainHash = blockOnMain.Detail.Block.ParentHash
 					incSeqFlag = true
 					continue
 				}
