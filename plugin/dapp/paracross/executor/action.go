@@ -467,6 +467,8 @@ func getCrossTxHashs(api client.QueueProtocolAPI, commit *pt.ParacrossCommitActi
 	crossTxResult := commit.Status.CrossTxResult
 	if types.IsDappFork(commit.Status.MainBlockHeight, pt.ParaX, pt.ForkCommitTx) {
 		if len(commit.Status.CrossTxHashs) == 0 {
+			clog.Error("getCrossTxHashs para CrossTxHashs nil", "commitHeight", commit.Status.Height,
+				"commit.MainHeight", commit.Status.MainBlockHeight)
 			return nil, nil, types.ErrCheckTxHash
 		}
 		blockDetail, err := GetBlock(api, commit.Status.MainBlockHash)
