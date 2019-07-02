@@ -118,12 +118,35 @@ function GetUnfreezeWithdraw() {
     echo_rst "$FUNCNAME" "$?"
 }
 
+function ListByCreate() {
+    req='{"method":"Chain33.Query","params":[{"execer": "unfreeze", "funcName" : "ListUnfreezeByCreator", "payload" : {"initiator":"'$1'"} }]}'
+    # echo "#request: $req"
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    # echo "#resp: $resp"
+    ok=$(jq '(.error|not) and (.result != "")' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+function ListByBeneficiary() {
+    req='{"method":"Chain33.Query","params":[{"execer": "unfreeze", "funcName" : "ListUnfreezeByBeneficiary", "payload" : {"beneficiary":"'$1'"} }]}'
+    # echo "#request: $req"
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    # echo "#resp: $resp"
+    ok=$(jq '(.error|not) and (.result != "")' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
 function run_testcases() {
     CreateRawUnfreezeCreate
 
     CreateRawUnfreezeWithdraw
     GetUnfreeze
     GetUnfreezeWithdraw
+
+    ListByCreate "$owner"
+    ListByBeneficiary "$beneficiary"
 
     CreateRawUnfreezeTerminate
 }
