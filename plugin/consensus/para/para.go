@@ -51,7 +51,7 @@ var (
 	mainParaSelfConsensusForkHeight int64 = types.MaxHeight //para chain self consensus height switch, must >= ForkParacrossCommitTx of main
 	mainForkParacrossCommitTx       int64 = types.MaxHeight //support paracross commit tx fork height in main chain: ForkParacrossCommitTx
 	batchFetchSeqEnable             bool
-	batchFetchSeqNum   				int64 = 128
+	batchFetchSeqNum                int64 = 128
 )
 
 func init() {
@@ -86,7 +86,7 @@ type subConfig struct {
 	MainForkParacrossCommitTx       int64  `json:"mainForkParacrossCommitTx,omitempty"`
 	WaitConsensStopTimes            uint32 `json:"waitConsensStopTimes,omitempty"`
 	BatchFetchSeqEnable             uint32 `json:"batchFetchSeqEnable,omitempty"`
-	BatchFetchSeqNum             	int64  `json:"batchFetchSeqNum,omitempty"`
+	BatchFetchSeqNum                int64  `json:"batchFetchSeqNum,omitempty"`
 }
 
 // New function to init paracross env
