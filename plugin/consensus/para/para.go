@@ -50,6 +50,8 @@ var (
 	mainBlockHashForkHeight         int64 = 209186          //calc block hash fork height in main chain
 	mainParaSelfConsensusForkHeight int64 = types.MaxHeight //para chain self consensus height switch, must >= ForkParacrossCommitTx of main
 	mainForkParacrossCommitTx       int64 = types.MaxHeight //support paracross commit tx fork height in main chain: ForkParacrossCommitTx
+	batchFetchSeqEnable             bool
+	batchFetchSeqNum   				int64 = 128
 )
 
 func init() {
@@ -83,6 +85,8 @@ type subConfig struct {
 	MainParaSelfConsensusForkHeight int64  `json:"mainParaSelfConsensusForkHeight,omitempty"`
 	MainForkParacrossCommitTx       int64  `json:"mainForkParacrossCommitTx,omitempty"`
 	WaitConsensStopTimes            uint32 `json:"waitConsensStopTimes,omitempty"`
+	BatchFetchSeqEnable             uint32 `json:"batchFetchSeqEnable,omitempty"`
+	BatchFetchSeqNum             	int64  `json:"batchFetchSeqNum,omitempty"`
 }
 
 // New function to init paracross env
@@ -120,6 +124,14 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 
 	if subcfg.MainForkParacrossCommitTx > 0 {
 		mainForkParacrossCommitTx = subcfg.MainForkParacrossCommitTx
+	}
+
+	if subcfg.BatchFetchSeqEnable > 0 {
+		batchFetchSeqEnable = true
+	}
+
+	if subcfg.BatchFetchSeqNum > 0 {
+		batchFetchSeqNum = subcfg.BatchFetchSeqNum
 	}
 
 	pk, err := hex.DecodeString(minerPrivateKey)
@@ -321,12 +333,12 @@ func (client *client) removeBlocks(endHeight int64) error {
 }
 
 // miner tx need all para node create, but not all node has auth account, here just not sign to keep align
-func (client *client) addMinerTx(preStateHash []byte, block *types.Block, main *types.BlockSeq, txs []*types.Transaction) error {
+func (client *client) addMinerTx(preStateHash []byte, block *types.Block, mainHash []byte, mainHeight int64, txs []*types.Transaction) error {
 	status := &pt.ParacrossNodeStatus{
 		Title:           types.GetTitle(),
 		Height:          block.Height,
-		MainBlockHash:   main.Seq.Hash,
-		MainBlockHeight: main.Detail.Block.Height,
+		MainBlockHash:   mainHash,
+		MainBlockHeight: mainHeight,
 	}
 
 	if !paracross.IsParaForkHeight(status.MainBlockHeight, pt.ForkLoopCheckCommitTxDone) {
@@ -346,6 +358,32 @@ func (client *client) addMinerTx(preStateHash []byte, block *types.Block, main *
 	return nil
 }
 
+func (client *client) createBlock2(lastBlock *types.Block, txs []*types.Transaction, seq int64, mainBlock *pt.ParaTxDetail) error {
+	var newblock types.Block
+	plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
+
+	newblock.ParentHash = lastBlock.Hash()
+	newblock.Height = lastBlock.Height + 1
+	newblock.Txs = txs
+	err := client.addMinerTx(lastBlock.StateHash, &newblock, mainBlock.Header.Hash, mainBlock.Header.Height, txs)
+	if err != nil {
+		return err
+	}
+	//挖矿固定难度
+	newblock.Difficulty = types.GetP(0).PowLimitBits
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.BlockTime = mainBlock.Header.BlockTime
+	newblock.MainHash = mainBlock.Header.Hash
+	newblock.MainHeight = mainBlock.Header.Height
+
+	err = client.WriteBlock(lastBlock.StateHash, &newblock, seq)
+
+	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
+		"newblock.Height", newblock.Height, "newblock.TxHash", common.ToHex(newblock.TxHash),
+		"newblock.BlockTime", newblock.BlockTime, "sequence", seq)
+	return err
+}
+
 func (client *client) createBlock(lastBlock *types.Block, txs []*types.Transaction, seq int64, mainBlock *types.BlockSeq) error {
 	var newblock types.Block
 	plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
@@ -353,7 +391,7 @@ func (client *client) createBlock(lastBlock *types.Block, txs []*types.Transacti
 	newblock.ParentHash = lastBlock.Hash()
 	newblock.Height = lastBlock.Height + 1
 	newblock.Txs = txs
-	err := client.addMinerTx(lastBlock.StateHash, &newblock, mainBlock, txs)
+	err := client.addMinerTx(lastBlock.StateHash, &newblock, mainBlock.Seq.Hash, mainBlock.Detail.Block.Height, txs)
 	if err != nil {
 		return err
 	}
@@ -372,13 +410,13 @@ func (client *client) createBlock(lastBlock *types.Block, txs []*types.Transacti
 	return err
 }
 
-func (client *client) createBlockTemp(txs []*types.Transaction, mainBlock *types.BlockSeq) error {
+func (client *client) createBlockTemp(txs []*types.Transaction, mainBlock *pt.ParaTxDetail) error {
 	lastBlock, err := client.RequestLastBlock()
 	if err != nil {
 		plog.Error("Parachain RequestLastBlock fail", "err", err)
 		return err
 	}
-	return client.createBlock(lastBlock, txs, 0, mainBlock)
+	return client.createBlock2(lastBlock, txs, 0, mainBlock)
 
 }
 
