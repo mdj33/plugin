@@ -5,7 +5,6 @@
 package para
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"sync/atomic"
 
 	"github.com/33cn/chain33/client/api"
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -50,6 +48,7 @@ var (
 	mainBlockHashForkHeight         int64 = 209186          //calc block hash fork height in main chain
 	mainParaSelfConsensusForkHeight int64 = types.MaxHeight //para chain self consensus height switch, must >= ForkParacrossCommitTx of main
 	mainForkParacrossCommitTx       int64 = types.MaxHeight //support paracross commit tx fork height in main chain: ForkParacrossCommitTx
+	localCacheCount                 int64 = 1000  // local cache block max count
 	batchFetchSeqEnable             bool
 	batchFetchSeqNum                int64 = 128
 )
@@ -70,6 +69,9 @@ type client struct {
 	wg              sync.WaitGroup
 	subCfg          *subConfig
 	mtx             sync.Mutex
+
+	syncCaughtUpAtom int32
+	localChangeAtom int32
 }
 
 type subConfig struct {
@@ -85,6 +87,7 @@ type subConfig struct {
 	MainParaSelfConsensusForkHeight int64  `json:"mainParaSelfConsensusForkHeight,omitempty"`
 	MainForkParacrossCommitTx       int64  `json:"mainForkParacrossCommitTx,omitempty"`
 	WaitConsensStopTimes            uint32 `json:"waitConsensStopTimes,omitempty"`
+	LocalCacheCount                 int64 `json:"localCacheCount,omitempty"`
 	BatchFetchSeqEnable             uint32 `json:"batchFetchSeqEnable,omitempty"`
 	BatchFetchSeqNum                int64  `json:"batchFetchSeqNum,omitempty"`
 }
@@ -124,6 +127,10 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 
 	if subcfg.MainForkParacrossCommitTx > 0 {
 		mainForkParacrossCommitTx = subcfg.MainForkParacrossCommitTx
+	}
+
+	if subcfg.LocalCacheCount > 0 {
+		localCacheCount = subcfg.LocalCacheCount
 	}
 
 	if subcfg.BatchFetchSeqEnable > 0 {
@@ -209,6 +216,7 @@ func (client *client) SetQueueClient(c queue.Client) {
 	client.wg.Add(1)
 	go client.commitMsgClient.handler()
 	go client.CreateBlock()
+	go client.SyncBlocks()
 }
 
 func (client *client) InitBlock() {
@@ -222,7 +230,7 @@ func (client *client) InitBlock() {
 	}
 
 	if block == nil {
-		startSeq, mainHash := client.GetStartSeq(startHeight)
+		mainHash := client.GetStartMainHash(startHeight)
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
@@ -233,7 +241,7 @@ func (client *client) InitBlock() {
 		tx := client.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		err := client.WriteBlock(zeroHash[:], newblock, startSeq)
+		err := client.CreateGenesisBlock(newblock)
 		if err != nil {
 			panic(fmt.Sprintf("para chain create genesis block,err=%s", err.Error()))
 		}
@@ -251,8 +259,8 @@ func (client *client) InitBlock() {
 
 }
 
-// GetStartSeq get startSeq in mainchain
-func (client *client) GetStartSeq(height int64) (int64, []byte) {
+// GetStartMainHash get StartMainHash in mainchain
+func (client *client) GetStartMainHash(height int64) ([]byte) {
 	if height <= 0 {
 		panic(fmt.Sprintf("startHeight(%d) should be more than 0 in mainchain", height))
 	}
@@ -286,7 +294,7 @@ func (client *client) GetStartSeq(height int64) (int64, []byte) {
 		panic(err)
 	}
 	plog.Info("the start sequence in mainchain", "startHeight", height, "startSeq", seq)
-	return seq, hash
+	return hash
 }
 
 func (client *client) CreateGenesisTx() (ret []*types.Transaction) {
@@ -304,190 +312,6 @@ func (client *client) CreateGenesisTx() (ret []*types.Transaction) {
 
 func (client *client) ProcEvent(msg *queue.Message) bool {
 	return false
-}
-
-func (client *client) removeBlocks(endHeight int64) error {
-	for {
-		lastBlock, err := client.RequestLastBlock()
-		if err != nil {
-			plog.Error("Parachain RequestLastBlock fail", "err", err)
-			return err
-		}
-		if lastBlock.Height == endHeight {
-			return nil
-		}
-
-		blockedSeq, err := client.GetBlockedSeq(lastBlock.Hash())
-		if err != nil {
-			plog.Error("Parachain GetBlockedSeq fail", "err", err)
-			return err
-		}
-
-		err = client.DelBlock(lastBlock.Height, blockedSeq)
-		if err != nil {
-			plog.Error("Parachain GetBlockedSeq fail", "err", err)
-			return err
-		}
-		plog.Info("Parachain removeBlocks succ", "localParaHeight", lastBlock.Height, "blockedSeq", blockedSeq)
-	}
-}
-
-// miner tx need all para node create, but not all node has auth account, here just not sign to keep align
-func (client *client) addMinerTx(preStateHash []byte, block *types.Block, mainHash []byte, mainHeight int64, txs []*types.Transaction) error {
-	status := &pt.ParacrossNodeStatus{
-		Title:           types.GetTitle(),
-		Height:          block.Height,
-		MainBlockHash:   mainHash,
-		MainBlockHeight: mainHeight,
-	}
-
-	if !paracross.IsParaForkHeight(status.MainBlockHeight, pt.ForkLoopCheckCommitTxDone) {
-		status.PreBlockHash = block.ParentHash
-		status.PreStateHash = preStateHash
-
-	}
-	tx, err := pt.CreateRawMinerTx(&pt.ParacrossMinerAction{
-		Status:          status,
-		IsSelfConsensus: isParaSelfConsensusForked(status.MainBlockHeight),
-	})
-	if err != nil {
-		return err
-	}
-	tx.Sign(types.SECP256K1, client.privateKey)
-	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
-	return nil
-}
-
-func (client *client) createBlock2(lastBlock *types.Block, txs []*types.Transaction, seq int64, mainBlock *pt.ParaTxDetail) error {
-	var newblock types.Block
-	plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
-
-	newblock.ParentHash = lastBlock.Hash()
-	newblock.Height = lastBlock.Height + 1
-	newblock.Txs = txs
-	err := client.addMinerTx(lastBlock.StateHash, &newblock, mainBlock.Header.Hash, mainBlock.Header.Height, txs)
-	if err != nil {
-		return err
-	}
-	//挖矿固定难度
-	newblock.Difficulty = types.GetP(0).PowLimitBits
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-	newblock.BlockTime = mainBlock.Header.BlockTime
-	newblock.MainHash = mainBlock.Header.Hash
-	newblock.MainHeight = mainBlock.Header.Height
-
-	err = client.WriteBlock(lastBlock.StateHash, &newblock, seq)
-
-	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
-		"newblock.Height", newblock.Height, "newblock.TxHash", common.ToHex(newblock.TxHash),
-		"newblock.BlockTime", newblock.BlockTime, "sequence", seq)
-	return err
-}
-
-func (client *client) createBlock(lastBlock *types.Block, txs []*types.Transaction, seq int64, mainBlock *types.BlockSeq) error {
-	var newblock types.Block
-	plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
-
-	newblock.ParentHash = lastBlock.Hash()
-	newblock.Height = lastBlock.Height + 1
-	newblock.Txs = txs
-	err := client.addMinerTx(lastBlock.StateHash, &newblock, mainBlock.Seq.Hash, mainBlock.Detail.Block.Height, txs)
-	if err != nil {
-		return err
-	}
-	//挖矿固定难度
-	newblock.Difficulty = types.GetP(0).PowLimitBits
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-	newblock.BlockTime = mainBlock.Detail.Block.BlockTime
-	newblock.MainHash = mainBlock.Seq.Hash
-	newblock.MainHeight = mainBlock.Detail.Block.Height
-
-	err = client.WriteBlock(lastBlock.StateHash, &newblock, seq)
-
-	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
-		"newblock.Height", newblock.Height, "newblock.TxHash", common.ToHex(newblock.TxHash),
-		"newblock.BlockTime", newblock.BlockTime, "sequence", seq)
-	return err
-}
-
-func (client *client) createBlockTemp(txs []*types.Transaction, mainBlock *pt.ParaTxDetail) error {
-	lastBlock, err := client.RequestLastBlock()
-	if err != nil {
-		plog.Error("Parachain RequestLastBlock fail", "err", err)
-		return err
-	}
-	return client.createBlock2(lastBlock, txs, 0, mainBlock)
-
-}
-
-// 向blockchain写区块
-func (client *client) WriteBlock(prev []byte, paraBlock *types.Block, seq int64) error {
-	//共识模块不执行block，统一由blockchain模块执行block并做去重的处理，返回执行后的blockdetail
-	blockDetail := &types.BlockDetail{Block: paraBlock}
-
-	parablockDetail := &types.ParaChainBlockDetail{Blockdetail: blockDetail, Sequence: seq}
-	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddParaChainBlockDetail, parablockDetail)
-	err := client.GetQueueClient().Send(msg, true)
-	if err != nil {
-		return err
-	}
-	resp, err := client.GetQueueClient().Wait(msg)
-	if err != nil {
-		return err
-	}
-	blkdetail := resp.GetData().(*types.BlockDetail)
-	if blkdetail == nil {
-		return errors.New("block detail is nil")
-	}
-
-	client.SetCurrentBlock(blkdetail.Block)
-
-	if client.authAccount != "" {
-		client.commitMsgClient.updateChainHeight(blockDetail.Block.Height, false)
-	}
-
-	return nil
-}
-
-// 向blockchain删区块
-func (client *client) DelBlock(start, seq int64) error {
-	plog.Debug("delete block in parachain")
-	//start := block.Height
-	if start == 0 {
-		panic("Parachain attempt to Delete GenesisBlock !")
-	}
-	msg := client.GetQueueClient().NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{Start: start, End: start, IsDetail: true, Pid: []string{""}})
-	err := client.GetQueueClient().Send(msg, true)
-	if err != nil {
-		return err
-	}
-	resp, err := client.GetQueueClient().Wait(msg)
-	if err != nil {
-		return err
-	}
-	blocks := resp.GetData().(*types.BlockDetails)
-
-	parablockDetail := &types.ParaChainBlockDetail{Blockdetail: blocks.Items[0], Sequence: seq}
-	msg = client.GetQueueClient().NewMessage("blockchain", types.EventDelParaChainBlockDetail, parablockDetail)
-	err = client.GetQueueClient().Send(msg, true)
-	if err != nil {
-		return err
-	}
-	resp, err = client.GetQueueClient().Wait(msg)
-	if err != nil {
-		return err
-	}
-
-	if resp.GetData().(*types.Reply).IsOk {
-		if client.authAccount != "" {
-			client.commitMsgClient.updateChainHeight(blocks.Items[0].Block.Height, true)
-
-		}
-	} else {
-		reply := resp.GetData().(*types.Reply)
-		return errors.New(string(reply.GetMsg()))
-	}
-	return nil
 }
 
 //IsCaughtUp 是否追上最新高度,

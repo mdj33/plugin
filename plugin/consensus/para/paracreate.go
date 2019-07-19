@@ -570,6 +570,7 @@ func (client *client) procLocalBlocks(mainBlocks *pt.ParaTxDetails) error {
 			return err
 		}
 	}
+	client.NotifyLocalChange()
 	return nil
 }
 
