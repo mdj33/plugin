@@ -5,15 +5,15 @@
 package para
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
-	"time"
-
-	"encoding/hex"
 
 	log "github.com/33cn/chain33/common/log/log15"
 
 	"sync/atomic"
+
+	"time"
 
 	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/common/crypto"
@@ -59,16 +59,18 @@ func init() {
 
 type client struct {
 	*drivers.BaseClient
-	grpcClient      types.Chain33Client
-	execAPI         api.ExecutorAPI
-	isCaughtUp      int32
-	commitMsgClient *commitMsgClient
-	blockSyncClient *BlockSyncClient
-	authAccount     string
-	privateKey      crypto.PrivKey
-	wg              sync.WaitGroup
-	subCfg          *subConfig
-	mtx             sync.Mutex
+	grpcClient       types.Chain33Client
+	execAPI          api.ExecutorAPI
+	isCaughtUp       int32
+	commitMsgClient  *commitMsgClient
+ 	blockSyncClient *BlockSyncClient 
+	authAccount      string
+	privateKey       crypto.PrivKey
+	wg               sync.WaitGroup
+	subCfg           *subConfig
+	syncCaughtUpAtom int32
+	localChangeAtom  int32
+	quitCreate       chan struct{}
 }
 
 type subConfig struct {
@@ -154,11 +156,12 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	}
 
 	para := &client{
-		BaseClient:            c,
-		grpcClient:            grpcCli,
-		authAccount:           subcfg.AuthAccount,
-		privateKey:            priKey,
-		subCfg:                &subcfg,
+		BaseClient:  c,
+		grpcClient:  grpcCli,
+		authAccount: subcfg.AuthAccount,
+		privateKey:  priKey,
+		subCfg:      &subcfg,
+		quitCreate:  make(chan struct{}),
 	}
 
 	waitBlocks := int32(2) //最小是2
@@ -211,7 +214,8 @@ func (client *client) CheckBlock(parent *types.Block, current *types.BlockDetail
 func (client *client) Close() {
 	client.BaseClient.Close()
 	close(client.commitMsgClient.quit)
-	close(client.blockSyncClient.quitChan)
+	close(client.quitCreate)
+  close(client.blockSyncClient.quitChan)  
 	client.wg.Wait()
 	plog.Info("consensus para closed")
 }
@@ -224,6 +228,7 @@ func (client *client) SetQueueClient(c queue.Client) {
 	go client.EventLoop()
 	client.wg.Add(1)
 	go client.commitMsgClient.handler()
+	client.wg.Add(1)
 	go client.CreateBlock()
 	go client.SyncBlocks()
 }
@@ -239,7 +244,11 @@ func (client *client) InitBlock() {
 	}
 
 	if block == nil {
-		mainHash := client.GetStartMainHash(startHeight)
+		if startHeight <= 0 {
+			panic(fmt.Sprintf("startHeight(%d) should be more than 0 in mainchain", startHeight))
+		}
+		//平行链创世区块对应主链hash为startHeight-1的那个block的hash
+		mainHash := client.GetStartMainHash(startHeight - 1)
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
@@ -268,41 +277,39 @@ func (client *client) InitBlock() {
 
 }
 
-// GetStartMainHash get StartMainHash in mainchain
+// GetStartMainHash 获取start
 func (client *client) GetStartMainHash(height int64) []byte {
-	if height <= 0 {
-		panic(fmt.Sprintf("startHeight(%d) should be more than 0 in mainchain", height))
-	}
-
 	lastHeight, err := client.GetLastHeightOnMainChain()
 	if err != nil {
 		panic(err)
 	}
-	if lastHeight < height && lastHeight > 0 {
+	if lastHeight < height {
 		panic(fmt.Sprintf("lastHeight(%d) less than startHeight(%d) in mainchain", lastHeight, height))
 	}
 
-	hint := time.NewTicker(5 * time.Second)
-	for lastHeight < height+minBlockNum {
-		select {
-		case <-hint.C:
-			plog.Info("Waiting lastHeight increase......", "lastHeight", lastHeight, "startHeight", height)
-		default:
-			lastHeight, err = client.GetLastHeightOnMainChain()
-			if err != nil {
-				panic(err)
+	if height > 0 {
+		hint := time.NewTicker(5 * time.Second)
+		for lastHeight < height+minBlockNum {
+			select {
+			case <-hint.C:
+				plog.Info("Waiting lastHeight increase......", "lastHeight", lastHeight, "startHeight", height)
+			default:
+				lastHeight, err = client.GetLastHeightOnMainChain()
+				if err != nil {
+					panic(err)
+				}
+				time.Sleep(time.Second)
 			}
-			time.Sleep(time.Second)
 		}
+		hint.Stop()
+		plog.Info(fmt.Sprintf("lastHeight more than %d blocks after startHeight", minBlockNum), "lastHeight", lastHeight, "startHeight", height)
 	}
-	hint.Stop()
-	plog.Info(fmt.Sprintf("lastHeight more than %d blocks after startHeight", minBlockNum), "lastHeight", lastHeight, "startHeight", height)
 
-	seq, hash, err := client.GetSeqByHeightOnMainChain(height - 1)
+	hash, err := client.GetHashByHeightOnMainChain(height)
 	if err != nil {
 		panic(err)
 	}
-	plog.Info("the start sequence in mainchain", "startHeight", height, "startSeq", seq)
+	plog.Info("the start hash in mainchain", "height", height, "hash", hex.EncodeToString(hash))
 	return hash
 }
 
