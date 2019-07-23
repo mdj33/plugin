@@ -5,15 +5,15 @@
 package para
 
 import (
-	"encoding/hex"
 	"fmt"
 	"sync"
+	"time"
+
+	"encoding/hex"
 
 	log "github.com/33cn/chain33/common/log/log15"
 
 	"sync/atomic"
-
-	"time"
 
 	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/common/crypto"
@@ -48,7 +48,6 @@ var (
 	mainBlockHashForkHeight         int64 = 209186          //calc block hash fork height in main chain
 	mainParaSelfConsensusForkHeight int64 = types.MaxHeight //para chain self consensus height switch, must >= ForkParacrossCommitTx of main
 	mainForkParacrossCommitTx       int64 = types.MaxHeight //support paracross commit tx fork height in main chain: ForkParacrossCommitTx
-	localCacheCount                 int64 = 1000            // local cache block max count
 	batchFetchSeqEnable             bool
 	batchFetchSeqNum                int64 = 128
 )
@@ -60,16 +59,15 @@ func init() {
 
 type client struct {
 	*drivers.BaseClient
-	grpcClient       types.Chain33Client
-	execAPI          api.ExecutorAPI
-	isCaughtUp       int32
-	commitMsgClient  *commitMsgClient
-	authAccount      string
-	privateKey       crypto.PrivKey
-	wg               sync.WaitGroup
-	subCfg           *subConfig
-	syncCaughtUpAtom int32
-	localChangeAtom  int32
+	grpcClient      types.Chain33Client
+	execAPI         api.ExecutorAPI
+	isCaughtUp      int32
+	commitMsgClient *commitMsgClient
+	blockSyncClient *BlockSyncClient
+	authAccount     string
+	privateKey      crypto.PrivKey
+	wg              sync.WaitGroup
+	subCfg          *subConfig
 	quitCreate       chan struct{}
 }
 
@@ -86,7 +84,8 @@ type subConfig struct {
 	MainParaSelfConsensusForkHeight int64  `json:"mainParaSelfConsensusForkHeight,omitempty"`
 	MainForkParacrossCommitTx       int64  `json:"mainForkParacrossCommitTx,omitempty"`
 	WaitConsensStopTimes            uint32 `json:"waitConsensStopTimes,omitempty"`
-	LocalCacheCount                 int64  `json:"localCacheCount,omitempty"`
+	MaxCacheCount                   int64  `json:"maxCacheCount,omitempty"`
+	MaxSyncErrCount                 int32  `json:"maxSyncErrCount,omitempty"`
 	BatchFetchSeqEnable             uint32 `json:"batchFetchSeqEnable,omitempty"`
 	BatchFetchSeqNum                int64  `json:"batchFetchSeqNum,omitempty"`
 }
@@ -128,10 +127,6 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 		mainForkParacrossCommitTx = subcfg.MainForkParacrossCommitTx
 	}
 
-	if subcfg.LocalCacheCount > 0 {
-		localCacheCount = subcfg.LocalCacheCount
-	}
-
 	if subcfg.BatchFetchSeqEnable > 0 {
 		batchFetchSeqEnable = true
 	}
@@ -159,12 +154,12 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	}
 
 	para := &client{
-		BaseClient:  c,
-		grpcClient:  grpcCli,
-		authAccount: subcfg.AuthAccount,
-		privateKey:  priKey,
-		subCfg:      &subcfg,
-		quitCreate:  make(chan struct{}),
+		BaseClient:            c,
+		grpcClient:            grpcCli,
+		authAccount:           subcfg.AuthAccount,
+		privateKey:            priKey,
+		subCfg:                &subcfg,
+		quitCreate:            make(chan struct{}),
 	}
 
 	waitBlocks := int32(2) //最小是2
@@ -190,6 +185,20 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 		sendingHeight:        -1,
 		quit:                 make(chan struct{}),
 	}
+
+	para.blockSyncClient = &BlockSyncClient{
+		notifyChan:      make(chan bool),
+		quitChan:        make(chan struct{}),
+		maxCacheCount:   1000,
+		maxSyncErrCount: 100,
+	}
+	if subcfg.MaxCacheCount > 0 {
+		para.blockSyncClient.maxCacheCount = subcfg.MaxCacheCount
+	}
+	if subcfg.MaxSyncErrCount > 0 {
+		para.blockSyncClient.maxSyncErrCount = subcfg.MaxSyncErrCount
+	}
+
 	c.SetChild(para)
 	return para
 }
@@ -203,6 +212,7 @@ func (client *client) CheckBlock(parent *types.Block, current *types.BlockDetail
 func (client *client) Close() {
 	client.BaseClient.Close()
 	close(client.commitMsgClient.quit)
+	close(client.blockSyncClient.quitChan)
 	close(client.quitCreate)
 	client.wg.Wait()
 	plog.Info("consensus para closed")
