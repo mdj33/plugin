@@ -68,8 +68,6 @@ type client struct {
 	privateKey       crypto.PrivKey
 	wg               sync.WaitGroup
 	subCfg           *subConfig
-	syncCaughtUpAtom int32
-	localChangeAtom  int32
 	quitCreate       chan struct{}
 }
 
@@ -215,7 +213,7 @@ func (client *client) Close() {
 	client.BaseClient.Close()
 	close(client.commitMsgClient.quit)
 	close(client.quitCreate)
-  close(client.blockSyncClient.quitChan)  
+	close(client.blockSyncClient.quitChan)
 	client.wg.Wait()
 	plog.Info("consensus para closed")
 }
