@@ -482,8 +482,19 @@ func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 	parablockDetail := msg.Data.(*types.ParaChainBlockDetail)
 
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+
+	//设置是否刷盘
+	isbatchsync := atomic.LoadInt32(&chain.isbatchsync)
+	if parablockDetail.Batchsync {
+		atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
+	} else {
+		atomic.CompareAndSwapInt32(&chain.isbatchsync, 1, 0)
+	}
 	// 平行链上P2P模块关闭，不用广播区块
 	blockDetail, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
+	//处理完后恢复刷盘设置
+	atomic.StoreInt32(&chain.isbatchsync, isbatchsync)
+
 	if err != nil {
 		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, err))

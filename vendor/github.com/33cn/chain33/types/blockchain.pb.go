@@ -1534,6 +1534,7 @@ func (m *BlockSequences) GetItems() []*BlockSequence {
 type ParaChainBlockDetail struct {
 	Blockdetail          *BlockDetail `protobuf:"bytes,1,opt,name=blockdetail,proto3" json:"blockdetail,omitempty"`
 	Sequence             int64        `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Batchsync            bool         `protobuf:"varint,10,opt,name=batchsync" json:"batchsync,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`

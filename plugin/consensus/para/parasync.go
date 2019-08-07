@@ -39,6 +39,10 @@ type BlockSyncClient struct {
 	isSyncCaughtUpAtom int32
 	//printDebugInfo 打印Debug信息
 	isPrintDebugInfo bool
+	//cfgBatchSyncWriteBlock  批量同步执行块配置
+	cfgBatchSyncWriteBlock bool
+	//isDownloadCaughtUpAtom  下载是否已经追赶上
+	isDownloadCaughtUpAtom int32
 }
 
 //NextActionType 定义每一轮可执行操作
@@ -70,8 +74,16 @@ func (client *BlockSyncClient) SyncHasCaughtUp() bool {
 	return atomic.LoadInt32(&client.isSyncCaughtUpAtom) == 1
 }
 
-//NotifyLocalChange 下载状态通知，供下载层调用
-func (client *BlockSyncClient) NotifyLocalChange() {
+//HandleLocalCaughtUpMsg 处理下载层已追赶上消息，供下载层调用
+func (client *BlockSyncClient) HandleLocalCaughtUpMsg() {
+	client.printDebugInfo("Para sync -notify download has caughtUp")
+	if !client.downloadHasCaughtUp() {
+		client.setDownloadHasCaughtUp(true)
+	}
+}
+
+//HandleLocalChangedMsg 处理已有新的下载块消息，供下载层调用
+func (client *BlockSyncClient) HandleLocalChangedMsg() {
 	client.printDebugInfo("Para sync - notify change")
 	if client.getBlockSyncState() != BlockSyncStateSyncing {
 		client.printDebugInfo("Para sync - notified change")
@@ -388,7 +400,8 @@ func (client *BlockSyncClient) addBlock(lastBlock *types.Block, localBlock *pt.P
 
 	err = client.writeBlock(lastBlock.StateHash, &newBlock)
 
-	client.printDebugInfo("Para sync - para create new Block", "newblock.ParentHash", common.ToHex(newBlock.ParentHash),
+	client.printDebugInfo("Para sync - para create new Block",
+		"newblock.ParentHash", common.ToHex(newBlock.ParentHash),
 		"newblock.Height", newBlock.Height, "newblock.TxHash", common.ToHex(newBlock.TxHash),
 		"newblock.BlockTime", newBlock.BlockTime)
 
@@ -404,7 +417,8 @@ func (client *BlockSyncClient) rollbackBlock(block *types.Block) error {
 		panic("Para sync - Parachain attempt to Delete GenesisBlock !")
 	}
 
-	msg := client.paraClient.GetQueueClient().NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{Start: start, End: start, IsDetail: true, Pid: []string{""}})
+	reqBlocks := &types.ReqBlocks{Start: start, End: start, IsDetail: true, Pid: []string{""}}
+	msg := client.paraClient.GetQueueClient().NewMessage("blockchain", types.EventGetBlocks, reqBlocks)
 	err := client.paraClient.GetQueueClient().Send(msg, true)
 	if err != nil {
 		return err
@@ -444,6 +458,8 @@ func (client *BlockSyncClient) writeBlock(prev []byte, paraBlock *types.Block) e
 	blockDetail := &types.BlockDetail{Block: paraBlock}
 
 	parablockDetail := &types.ParaChainBlockDetail{Blockdetail: blockDetail}
+	parablockDetail.Batchsync = client.downloadHasCaughtUp() || client.cfgBatchSyncWriteBlock
+
 	msg := client.paraClient.GetQueueClient().NewMessage("blockchain", types.EventAddParaChainBlockDetail, parablockDetail)
 	err := client.paraClient.GetQueueClient().Send(msg, true)
 	if err != nil {
@@ -476,9 +492,23 @@ func (client *BlockSyncClient) setBlockSyncState(state BlockSyncState) {
 //设置是否追赶上
 func (client *BlockSyncClient) setSyncCaughtUp(isCaughtUp bool) {
 	if isCaughtUp {
-		atomic.StoreInt32(&client.isSyncCaughtUpAtom, 1)
+		atomic.CompareAndSwapInt32(&client.isSyncCaughtUpAtom, 0, 1)
 	} else {
-		atomic.StoreInt32(&client.isSyncCaughtUpAtom, 0)
+		atomic.CompareAndSwapInt32(&client.isSyncCaughtUpAtom, 1, 0)
+	}
+}
+
+//下载是否已经追赶上
+func (client *BlockSyncClient) downloadHasCaughtUp() bool {
+	return atomic.LoadInt32(&client.isDownloadCaughtUpAtom) == 1
+}
+
+//设置下载同步追赶状态
+func (client *BlockSyncClient) setDownloadHasCaughtUp(isCaughtUp bool) {
+	if isCaughtUp {
+		atomic.CompareAndSwapInt32(&client.isDownloadCaughtUpAtom, 0, 1)
+	} else {
+		atomic.CompareAndSwapInt32(&client.isDownloadCaughtUpAtom, 1, 0)
 	}
 }
 
@@ -499,6 +529,8 @@ func (client *BlockSyncClient) syncInit() {
 	client.printDebugInfo("Para sync - init")
 	client.setBlockSyncState(BlockSyncStateNone)
 	client.setSyncCaughtUp(false)
+	client.setDownloadHasCaughtUp(false)
+	client.cfgBatchSyncWriteBlock = types.Conf("config.blockchain").IsEnable("batchsync")
 	err := client.initFirstLocalHeightIfNeed()
 	if err != nil {
 		client.printError(err)
