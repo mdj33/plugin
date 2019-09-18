@@ -342,7 +342,9 @@ function main() {
         done
     else
         echo "=========== # paracross rpc test ============="
-        run_testcases
+        if [ "$IS_PARA" == "true" ]; then
+            run_testcases
+        fi
     fi
 
     if [ -n "$CASE_ERR" ]; then
