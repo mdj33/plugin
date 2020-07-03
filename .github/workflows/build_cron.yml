@@ -3,7 +3,7 @@ on:
   schedule:
     - cron: "*/20 * * * *"
 jobs:
-   ci_base:
+  ci_base:
     name: ci_base
     runs-on: ubuntu-latest
     steps:
