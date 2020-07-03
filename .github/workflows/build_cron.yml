@@ -1,0 +1,127 @@
+name: build
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+jobs:
+   ci_base:
+    name: ci_base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+        id: go
+      - name: set go env
+        run: export PATH=${PATH}:`go env GOPATH`/bin
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: deploy
+        run: make docker-compose
+      - name: Collect docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@v1
+        with:
+          images: 'build_chain33_1'
+          dest: './logs'
+      - name: Tar logs
+        if: failure()
+        run: tar cvzf ./logs.tgz ./logs
+      - name: Upload logs to GitHub
+        uses: actions/upload-artifact@master
+        with:
+          name: logs.tgz
+          path: ./logs.tgz
+
+
+  ci_relay:
+    name: ci_relay
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+        id: go
+      - name: set go env
+        run: export PATH=${PATH}:`go env GOPATH`/bin
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: deploy
+        run: |
+          make docker-compose dapp=relay
+          make docker-compose-down dapp=relay
+
+  ci_paracross:
+    name: ci_paracross
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+        id: go
+      - name: set go env
+        run: export PATH=${PATH}:`go env GOPATH`/bin
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: deploy
+        run: |
+          make docker-compose dapp=paracross
+          make docker-compose-down dapp=paracross
+
+  ci_paracross_bls:
+    name: ci_paracross_bls
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+        id: go
+      - name: set go env
+        run: export PATH=${PATH}:`go env GOPATH`/bin
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: deploy
+        run: make docker-compose dapp=paracross extra=1
+      - name: Collect docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@v1
+        with:
+          dest: './logs'
+      - name: Tar logs
+        if: failure()
+        run: tar cvzf ./logs2.tgz ./logs
+      - name: Upload logs to GitHub
+        uses: actions/upload-artifact@master
+        with:
+          name: logs2.tgz
+          path: ./logs2.tgz
+      - name: endjob
+        run: make docker-compose-down dapp=paracross
+
+
+
+  ci_x2ethereum:
+    name: ci_x2ethereum
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+        id: go
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: deploy
+        run: |
+          export GOPATH=$HOME/go
+          export PATH=${PATH}:`go env GOPATH`/bin
+          echo $GOPATH
+          make
+          make docker-compose dapp=x2ethereum
+          make docker-compose-down dapp=x2ethereum
+
+
+
