@@ -2,7 +2,7 @@ module github.com/33cn/plugin
 
 go 1.12
 
-replace github.com/33cn/chain33 => github.com/mdj33/chain33 v0.0.0-20200701062134-2b351aad6ba6
+replace github.com/33cn/chain33 => github.com/mdj33/chain33 v0.0.0-20200703083256-a229b0df3ae5
 
 require (
 	github.com/33cn/chain33 v0.0.0-20200703030312-6b32b7a3906e
