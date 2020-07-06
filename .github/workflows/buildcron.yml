@@ -1,7 +1,7 @@
-name: build
+name: build cron
 on:
   schedule:
-    - cron: "*/2 * * * *"
+    - cron: "50 * * * *"
 jobs:
   ci_base:
     name: ci_base
