@@ -56,10 +56,8 @@ jobs:
       - name: deploy
         run: make docker-compose
       - name: Collect docker logs on failure
-        if: failure()
         uses: jwalton/gh-docker-logs@v1
         with:
-          images: 'build_chain33_1'
           dest: './logs'
       - name: Tar logs
         if: failure()
