@@ -18,6 +18,8 @@ jobs:
         run: export PATH=${PATH}:`go env GOPATH`/bin
       - name: checkout
         uses: actions/checkout@v2
+        with:
+          ref: test_schedule2
       - name: echo
         run: echo "hello world "
 #      - name: deploy
