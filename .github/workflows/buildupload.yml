@@ -2,6 +2,8 @@ name: build
 on:
   push:
   pull_request:
+  schedule:
+    - cron: '*/3 * * * *'
 jobs:
   ci_base:
     name: ci_base
