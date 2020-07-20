@@ -3,7 +3,7 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: '*/3 * * * *'
+    - cron: '*/2 * * * *'
 jobs:
   ci_base:
     name: ci_base
@@ -19,7 +19,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: echo
-        run: echo "hello world"
+        run: echo "hello world "
 #      - name: deploy
 #        run: make docker-compose
 #      - name: Collect docker logs on failure
