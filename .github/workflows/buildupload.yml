@@ -18,30 +18,32 @@ jobs:
         run: export PATH=${PATH}:`go env GOPATH`/bin
       - name: checkout
         uses: actions/checkout@v2
-      - name: deploy
-        run: make docker-compose
-      - name: Collect docker logs on failure
-        uses: jwalton/gh-docker-logs@v1
-        with:
-          dest: './logs'
-      - name: Tar logs
-        run: tar cvzf ./logs.tgz ./logs
-      - name: Upload logs to GitHub
-        uses: actions/upload-artifact@v2
-        with:
-          name: logs.tgz
-          path: ./logs.tgz
-
-      - name: fetch log
-        run: |
-          docker ps
-          docker cp build_chain33_1:/root/logs newlogs
-          tar cvzf ./newlogs.tgz ./newlogs
-      - name: Upload logs to GitHub
-        uses: actions/upload-artifact@v2
-        with:
-          name: newlogs.tgz
-          path: ./newlogs.tgz
+      - name: echo
+        run: echo "hello world"
+#      - name: deploy
+#        run: make docker-compose
+#      - name: Collect docker logs on failure
+#        uses: jwalton/gh-docker-logs@v1
+#        with:
+#          dest: './logs'
+#      - name: Tar logs
+#        run: tar cvzf ./logs.tgz ./logs
+#      - name: Upload logs to GitHub
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: logs.tgz
+#          path: ./logs.tgz
+#
+#      - name: fetch log
+#        run: |
+#          docker ps
+#          docker cp build_chain33_1:/root/logs newlogs
+#          tar cvzf ./newlogs.tgz ./newlogs
+#      - name: Upload logs to GitHub
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: newlogs.tgz
+#          path: ./newlogs.tgz
 
 
 
