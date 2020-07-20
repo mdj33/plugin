@@ -3,7 +3,7 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: '*/2 * * * *'
+    - cron: '*/10 * * * *'
 jobs:
   ci_base:
     name: ci_base
@@ -18,12 +18,10 @@ jobs:
         run: export PATH=${PATH}:`go env GOPATH`/bin
       - name: checkout
         uses: actions/checkout@v2
-        with:
-          ref: test_schedule2
-      - name: echo
-        run: echo "hello world "
-#      - name: deploy
-#        run: make docker-compose
+      - name: test
+        run: echo "hello world"
+      - name: deploy
+        run: make docker-compose
 #      - name: Collect docker logs on failure
 #        uses: jwalton/gh-docker-logs@v1
 #        with:
