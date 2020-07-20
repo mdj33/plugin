@@ -373,7 +373,7 @@ function transfer() {
         echo "tx number wrong"
         exit 1
     fi
-    exit 1
+
     for ((i = 0; i < ${#hashes[*]}; i++)); do
         txs=$(${1} tx query_hash -s "${hashes[$i]}" | jq ".txs")
         if [ -z "${txs}" ]; then
