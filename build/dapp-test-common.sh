@@ -145,7 +145,7 @@ chain33_SignAndSendTx() {
     fi
 
     local req='"method":"Chain33.SignRawTx","params":[{"privkey":"'"$priKey"'","txHex":"'"$txHex"'","expire":"'"$expire"'"}]'
-    signedTx=$(curl -ksd "{$req}" "${MAIN_HTTP}" | jq -r ".result")
+    local signedTx=$(curl -ksd "{$req}" "${MAIN_HTTP}" | jq -r ".result")
 
     if [ "$signedTx" != null ]; then
         chain33_SendTx "$signedTx" "${MAIN_HTTP}"
