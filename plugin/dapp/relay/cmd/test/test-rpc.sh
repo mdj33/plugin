@@ -36,7 +36,7 @@ relay_CreateRawRelayAcceptTx() {
         echo_rst "$FUNCNAME" "$?"
         exit 1
     fi
-    exit 1
+
     local req='{"method":"Chain33.CreateTransaction","params":[{"execer":"'"${relay_parallel_exec}"'","actionName":"Accept","payload":{"orderId":"'"$id"'","xAddr":"1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT"}}]}'
     chain33_Http "$req" ${MAIN_HTTP} '(.error|not) and (.result != null)' "$FUNCNAME" ".result"
     chain33_SignAndSendTx "$RETURN_RESP" "0xec9162ea5fc2f473ab8240619a0a0f495ba9e9e5d4d9c434b8794a68280236c4" "${MAIN_HTTP}"
