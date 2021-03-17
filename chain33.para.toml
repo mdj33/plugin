@@ -45,6 +45,8 @@ enableReExecLocal=true
 # 使能精简localdb
 enableReduceLocaldb=false
 enablePushSubscribe=false
+# 是否开启本地时钟和ntp时钟偏移检查，默认close
+disableClockDriftCheck=true
 
 [p2p]
 types=["dht"]

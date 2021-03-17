@@ -2,7 +2,13 @@ Title="chain33"
 TestNet=true
 FixTime=false
 version="6.3.0"
-
+NtpHosts=[
+    "ntp.aliyun.com:123",
+    "time1.cloud.tencent.com:123",
+    "time.ustc.edu.cn:123",
+    "cn.ntp.org.cn:123",
+    "time.apple.com:123",
+]
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -52,6 +58,8 @@ chunkblockNum=1000
 enableFetchP2pstore=false
 # 使能假设已删除已归档数据后,获取数据情况
 enableIfDelLocalChunk=false
+# 是否开启本地时钟和ntp时钟偏移检查，默认开启
+disableClockDriftCheck=false
 
 [p2p]
 # p2p类型
