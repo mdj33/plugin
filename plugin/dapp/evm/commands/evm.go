@@ -335,9 +335,9 @@ func createEvmTransferTx(cfg *types.Chain33Config, cmd *cobra.Command, caller, e
 		transfer.Ty = cty.CoinsActionTransferToExec
 	}
 	if paraName == "" {
-		tx = &types.Transaction{Execer: []byte(cfg.ExecName(paraName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
+		tx = &types.Transaction{Execer: []byte(cfg.ExecName(paraName + cfg.GetCoinExec())), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
 	} else {
-		tx = &types.Transaction{Execer: []byte(cfg.ExecName(paraName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(cfg.ExecName(paraName + "coins"))}
+		tx = &types.Transaction{Execer: []byte(cfg.ExecName(paraName + cfg.GetCoinExec())), Payload: types.Encode(transfer), To: address.ExecAddress(cfg.ExecName(paraName + cfg.GetCoinExec()))}
 	}
 
 	var err error

@@ -90,9 +90,9 @@ func (c *channelClient) Transfer(ctx context.Context, in evmtypes.EvmContractTra
 	}
 	cfg := c.GetConfig()
 	if in.ParaName == "" {
-		tx = &types.Transaction{Execer: []byte(cfg.ExecName(in.ParaName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
+		tx = &types.Transaction{Execer: []byte(cfg.ExecName(in.ParaName + cfg.GetCoinExec())), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
 	} else {
-		tx = &types.Transaction{Execer: []byte(cfg.ExecName(in.ParaName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(cfg.ExecName(in.ParaName + "coins"))}
+		tx = &types.Transaction{Execer: []byte(cfg.ExecName(in.ParaName + cfg.GetCoinExec())), Payload: types.Encode(transfer), To: address.ExecAddress(cfg.ExecName(in.ParaName + cfg.GetCoinExec()))}
 	}
 
 	var err error
